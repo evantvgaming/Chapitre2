@@ -1,13 +1,9 @@
 (() => {
   const mouse = document.getElementById("mouse");
-  const success = document.getElementById("success");
   const circle = document.getElementById("hold-circle");
 
   const FLEE_RADIUS = 160;
   const FLEE_FORCE = 14;
-
-  const HOLD_TIME_MS = 5000; // ⏱️ 5 secondes
-  const RESTART_MS = 1500;
 
   let vw = window.innerWidth;
   let vh = window.innerHeight;
@@ -16,8 +12,6 @@
   let cursor = { x: vw / 2, y: vh / 2 };
 
   let rightDown = false;
-  let holdStart = null;
-  let won = false;
 
   placeMouse();
 
@@ -26,67 +20,50 @@
     vh = window.innerHeight;
   });
 
-  // Mouvement souris PC
-  window.addEventListener("mousemove", e => {
+  window.addEventListener("mousemove", (e) => {
     cursor.x = e.clientX;
     cursor.y = e.clientY;
 
+    // le rond suit le curseur
     circle.style.left = cursor.x + "px";
     circle.style.top = cursor.y + "px";
 
-    if (!won) update();
+    update();
   });
 
-  // Bloque menu clic droit
-  window.addEventListener("contextmenu", e => e.preventDefault());
+  // Empêche le menu clic droit
+  window.addEventListener("contextmenu", (e) => e.preventDefault());
 
-  // Clic droit DOWN
-  window.addEventListener("mousedown", e => {
-    if (e.button === 2 && !won) {
+  window.addEventListener("mousedown", (e) => {
+    if (e.button === 2) {
       rightDown = true;
-      holdStart = performance.now(); // 🔥 DÉMARRE ICI ET SEULEMENT ICI
-      circle.classList.add("active");
+      circle.classList.add("active"); // ✅ rond visible
     }
   });
 
-  // Clic droit UP
-  window.addEventListener("mouseup", e => {
+  window.addEventListener("mouseup", (e) => {
     if (e.button === 2) {
       rightDown = false;
-      holdStart = null;
-      circle.classList.remove("active");
+      circle.classList.remove("active"); // ✅ rond disparaît
     }
   });
 
   function update() {
-    // Souris emoji fuit
+    // Souris emoji fuit le curseur (piège)
     const dx = pos.x - cursor.x;
     const dy = pos.y - cursor.y;
     const dist = Math.hypot(dx, dy);
 
     if (dist < FLEE_RADIUS) {
-      pos.x += (dx / dist) * FLEE_FORCE + rand();
-      pos.y += (dy / dist) * FLEE_FORCE + rand();
+      pos.x += (dx / (dist || 1)) * FLEE_FORCE + rand();
+      pos.y += (dy / (dist || 1)) * FLEE_FORCE + rand();
       clamp();
       placeMouse();
     }
 
-    // Condition SECRÈTE : maintien clic droit 5s
-    if (rightDown && holdStart !== null) {
-      const held = performance.now() - holdStart;
-      if (held >= HOLD_TIME_MS) win();
-    }
-  }
-
-  function win() {
-    if (won) return;
-    won = true;
-    success.hidden = false;
-    circle.classList.remove("active");
-
-    setTimeout(() => {
-      location.reload();
-    }, RESTART_MS);
+    // ✅ volontairement : PAS DE BRAVO, PAS DE FIN
+    // rightDown sert juste à afficher le rond blanc.
+    void rightDown;
   }
 
   function placeMouse() {
