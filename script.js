@@ -1,141 +1,100 @@
-let rageLevel = 0;
-let lastNearTime = 0;
-
-
 (() => {
-  const mouseEl = document.getElementById("mouse");
-  const successEl = document.getElementById("success");
+  const mouse = document.getElementById("mouse");
+  const success = document.getElementById("success");
 
-  // Gameplay (piège)
   const FLEE_RADIUS = 160;
-  const FLEE_STRENGTH = 260;
-  const EDGE_PADDING = 24;
-
-  // Vraie condition de fin (secret) : maintenir clic droit
-  const HOLD_RIGHT_TO_WIN_MS = 1400;
-
-  // Après "Bravo Leandro", le site recommence
-  const RESTART_AFTER_MS = 1200;
+  const FLEE_FORCE = 14;
+  const HOLD_RIGHT_MS = 1500;
+  const RESTART_MS = 1200;
 
   let vw = window.innerWidth;
   let vh = window.innerHeight;
 
-  let pos = { x: vw * 0.5, y: vh * 0.55 };
-  let cursor = { x: vw * 0.2, y: vh * 0.2 };
+  let pos = { x: vw / 2, y: vh / 2 };
+  let cursor = { x: 0, y: 0 };
 
-  let isRightDown = false;
-  let isWon = false;
-  let rightHoldStart = null;
+  let rightDown = false;
+  let rightStart = null;
+  let won = false;
 
-  placeMouse(pos.x, pos.y);
+  let rage = 0;
+
+  place();
 
   window.addEventListener("resize", () => {
     vw = window.innerWidth;
     vh = window.innerHeight;
-    pos.x = clamp(pos.x, EDGE_PADDING, vw - EDGE_PADDING);
-    pos.y = clamp(pos.y, EDGE_PADDING, vh - EDGE_PADDING);
-    placeMouse(pos.x, pos.y);
   });
 
-  // Déplacement du curseur
-  window.addEventListener("mousemove", (e) => {
+  window.addEventListener("mousemove", e => {
     cursor.x = e.clientX;
     cursor.y = e.clientY;
-    if (!isWon) update();
+    if (!won) update();
   });
 
-  // IMPORTANT : empêcher le menu contextuel du clic droit (sinon ça casse le jeu)
-  window.addEventListener("contextmenu", (e) => e.preventDefault());
+  // Anti menu clic droit
+  window.addEventListener("contextmenu", e => e.preventDefault());
 
-  // Track clic droit
-  window.addEventListener("mousedown", (e) => {
+  window.addEventListener("mousedown", e => {
+    if (e.button === 2 && !won) {
+      rightDown = true;
+      rightStart = performance.now();
+    }
+  });
+
+  window.addEventListener("mouseup", e => {
     if (e.button === 2) {
-      isRightDown = true;
-      if (rightHoldStart === null) rightHoldStart = performance.now();
+      rightDown = false;
+      rightStart = null;
     }
   });
 
-  window.addEventListener("mouseup", (e) => {
-    if (e.button === 2) {
-      isRightDown = false;
-      rightHoldStart = null;
+  function update() {
+    const dx = pos.x - cursor.x;
+    const dy = pos.y - cursor.y;
+    const dist = Math.hypot(dx, dy);
+
+    if (dist < FLEE_RADIUS) {
+      rage++;
+      if (rage > 5) mouse.classList.add("glitch");
+
+      pos.x += (dx / dist) * FLEE_FORCE + rand();
+      pos.y += (dy / dist) * FLEE_FORCE + rand();
+
+      clamp();
+      place();
+    } else {
+      rage = Math.max(0, rage - 1);
+      mouse.classList.remove("glitch");
     }
-  });
 
-  mouseEl.addEventListener("dragstart", (e) => e.preventDefault());
-
-  if (dist < FLEE_RADIUS) {
-  const now = performance.now();
-
-  // Plus il insiste, plus elle se fout de lui
-  if (now - lastNearTime < 300) {
-    rageLevel++;
-  } else {
-    rageLevel = Math.max(0, rageLevel - 1);
-  }
-  lastNearTime = now;
-
-  // Glitch visuel si rage
-  if (rageLevel > 6) {
-    mouseEl.classList.add("glitch");
-  } else {
-    mouseEl.classList.remove("glitch");
-  }
-
-  const ux = dx / (dist || 1);
-  const uy = dy / (dist || 1);
-
-  const jitter = 0.6 + rageLevel * 0.05;
-  const rx = (Math.random() - 0.5) * jitter;
-  const ry = (Math.random() - 0.5) * jitter;
-
-  const push =
-    (FLEE_STRENGTH * (1 - dist / FLEE_RADIUS)) *
-    (0.09 + rageLevel * 0.01);
-
-  pos.x += (ux + rx) * push;
-  pos.y += (uy + ry) * push;
-
-  pos.x = clamp(pos.x, EDGE_PADDING, vw - EDGE_PADDING);
-  pos.y = clamp(pos.y, EDGE_PADDING, vh - EDGE_PADDING);
-
-  placeMouse(pos.x, pos.y);
-}
-
-  // Si le joueur ne bouge plus la souris, on continue quand même à vérifier le hold
-  // via une boucle légère.
-  function tick() {
-    if (!isWon) {
-      if (isRightDown && rightHoldStart !== null) {
-        const held = performance.now() - rightHoldStart;
-        if (held >= HOLD_RIGHT_TO_WIN_MS) win();
-      }
-      requestAnimationFrame(tick);
+    if (rightDown && rightStart) {
+      if (performance.now() - rightStart >= HOLD_RIGHT_MS) win();
     }
   }
-  tick();
 
   function win() {
-    if (isWon) return;
-    isWon = true;
+    if (won) return;
+    won = true;
+    success.hidden = false;
 
-    successEl.hidden = false;
-    mouseEl.style.filter = "grayscale(1) drop-shadow(0 10px 18px rgba(0,0,0,.6))";
-    mouseEl.style.transform = "translate(-50%, -50%) scale(0.9)";
-
-    // restart automatique
     setTimeout(() => {
-      window.location.reload();
-    }, RESTART_AFTER_MS);
+      location.reload();
+    }, RESTART_MS);
   }
 
-  function placeMouse(x, y) {
-    mouseEl.style.left = `${x}px`;
-    mouseEl.style.top = `${y}px`;
+  function place() {
+    mouse.style.left = pos.x + "px";
+    mouse.style.top = pos.y + "px";
+    mouse.style.transform = "translate(-50%, -50%)";
   }
 
-  function clamp(v, min, max) {
-    return Math.max(min, Math.min(max, v));
+  function clamp() {
+    pos.x = Math.max(20, Math.min(vw - 20, pos.x));
+    pos.y = Math.max(20, Math.min(vh - 20, pos.y));
+  }
+
+  function rand() {
+    return (Math.random() - 0.5) * rage;
   }
 })();
-
