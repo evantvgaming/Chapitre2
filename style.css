@@ -55,3 +55,27 @@ html, body {
 #mouse:active {
   cursor: grabbing;
 }
+
+/* Effet glitch / moquerie */
+.glitch {
+  animation: shake 0.12s infinite alternate;
+  filter: hue-rotate(45deg) contrast(1.4);
+}
+
+@keyframes shake {
+  0% {
+    transform: translate(-50%, -50%) translate(0, 0) rotate(0deg);
+  }
+  25% {
+    transform: translate(-50%, -50%) translate(-3px, 2px) rotate(-2deg);
+  }
+  50% {
+    transform: translate(-50%, -50%) translate(3px, -2px) rotate(2deg);
+  }
+  75% {
+    transform: translate(-50%, -50%) translate(-2px, -3px) rotate(-1deg);
+  }
+  100% {
+    transform: translate(-50%, -50%) translate(2px, 3px) rotate(1deg);
+  }
+}
