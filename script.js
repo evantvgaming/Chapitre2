@@ -64,38 +64,43 @@ let lastNearTime = 0;
 
   mouseEl.addEventListener("dragstart", (e) => e.preventDefault());
 
-  function update() {
-    // La souris fuit le curseur (et reste "inattrapable" naturellement)
-    const dx = pos.x - cursor.x;
-    const dy = pos.y - cursor.y;
-    const dist = Math.hypot(dx, dy);
+  if (dist < FLEE_RADIUS) {
+  const now = performance.now();
 
-    if (dist < FLEE_RADIUS) {
-      const ux = dx / (dist || 1);
-      const uy = dy / (dist || 1);
-
-      // jitter pour qu’elle ait l’air “vivante”
-      const jitter = 0.45;
-      const rx = (Math.random() - 0.5) * jitter;
-      const ry = (Math.random() - 0.5) * jitter;
-
-      const push = (FLEE_STRENGTH * (1 - dist / FLEE_RADIUS)) * 0.085;
-
-      pos.x += (ux + rx) * push;
-      pos.y += (uy + ry) * push;
-
-      pos.x = clamp(pos.x, EDGE_PADDING, vw - EDGE_PADDING);
-      pos.y = clamp(pos.y, EDGE_PADDING, vh - EDGE_PADDING);
-
-      placeMouse(pos.x, pos.y);
-    }
-
-    // Condition secrète : maintien clic droit (n'importe où à l'écran)
-    if (isRightDown && rightHoldStart !== null) {
-      const held = performance.now() - rightHoldStart;
-      if (held >= HOLD_RIGHT_TO_WIN_MS) win();
-    }
+  // Plus il insiste, plus elle se fout de lui
+  if (now - lastNearTime < 300) {
+    rageLevel++;
+  } else {
+    rageLevel = Math.max(0, rageLevel - 1);
   }
+  lastNearTime = now;
+
+  // Glitch visuel si rage
+  if (rageLevel > 6) {
+    mouseEl.classList.add("glitch");
+  } else {
+    mouseEl.classList.remove("glitch");
+  }
+
+  const ux = dx / (dist || 1);
+  const uy = dy / (dist || 1);
+
+  const jitter = 0.6 + rageLevel * 0.05;
+  const rx = (Math.random() - 0.5) * jitter;
+  const ry = (Math.random() - 0.5) * jitter;
+
+  const push =
+    (FLEE_STRENGTH * (1 - dist / FLEE_RADIUS)) *
+    (0.09 + rageLevel * 0.01);
+
+  pos.x += (ux + rx) * push;
+  pos.y += (uy + ry) * push;
+
+  pos.x = clamp(pos.x, EDGE_PADDING, vw - EDGE_PADDING);
+  pos.y = clamp(pos.y, EDGE_PADDING, vh - EDGE_PADDING);
+
+  placeMouse(pos.x, pos.y);
+}
 
   // Si le joueur ne bouge plus la souris, on continue quand même à vérifier le hold
   // via une boucle légère.
