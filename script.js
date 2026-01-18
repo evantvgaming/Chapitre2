@@ -1,3 +1,7 @@
+let rageLevel = 0;
+let lastNearTime = 0;
+
+
 (() => {
   const mouseEl = document.getElementById("mouse");
   const successEl = document.getElementById("success");
